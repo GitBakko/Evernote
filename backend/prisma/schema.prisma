@@ -1,0 +1,79 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String?
+  createdAt DateTime @default(now())
+  
+  notebooks Notebook[]
+  notes     Note[]
+  tags      Tag[]
+}
+
+model Notebook {
+  id        String   @id @default(uuid())
+  name      String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  notes     Note[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Note {
+  id          String   @id @default(uuid())
+  title       String
+  content     String   // HTML/JSON content
+  searchText  String?  // Plain text for search
+  notebookId  String
+  notebook    Notebook @relation(fields: [notebookId], references: [id])
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  tags        TagsOnNotes[]
+  attachments Attachment[]
+  isTrashed   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Tag {
+  id     String   @id @default(uuid())
+  name   String
+  userId String
+  user   User     @relation(fields: [userId], references: [id])
+  notes  TagsOnNotes[]
+  
+  @@unique([userId, name])
+}
+
+model TagsOnNotes {
+  noteId String
+  tagId  String
+  note   Note @relation(fields: [noteId], references: [id])
+  tag    Tag  @relation(fields: [tagId], references: [id])
+
+  @@id([noteId, tagId])
+}
+
+model Attachment {
+  id        String   @id @default(uuid())
+  noteId    String
+  note      Note     @relation(fields: [noteId], references: [id])
+  url       String
+  filename  String
+  mimeType  String
+  size      Int
+  createdAt DateTime @default(now())
+}
