@@ -1,19 +1,20 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getTags, createTag, deleteTag } from './tagService';
+import { useMutation } from '@tanstack/react-query';
+import { createTag, deleteTag } from './tagService';
 import { Tag as TagIcon, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import clsx from 'clsx';
+import { useTags } from '../../hooks/useTags';
 
 export default function TagList({ onSelectTag, selectedTagId }: { onSelectTag: (tagId: string | undefined) => void, selectedTagId?: string }) {
-  const { data: tags, isLoading } = useQuery({ queryKey: ['tags'], queryFn: getTags });
-  const queryClient = useQueryClient();
+  const tags = useTags();
+  const isLoading = !tags;
   const [isCreating, setIsCreating] = useState(false);
   const [newTagName, setNewTagName] = useState('');
 
   const createMutation = useMutation({
     mutationFn: createTag,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tags'] });
+      // No need to invalidate queries for Dexie hooks, they update automatically
       setIsCreating(false);
       setNewTagName('');
     },
@@ -22,7 +23,7 @@ export default function TagList({ onSelectTag, selectedTagId }: { onSelectTag: (
   const deleteMutation = useMutation({
     mutationFn: deleteTag,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tags'] });
+      // No need to invalidate
     },
   });
 
@@ -67,7 +68,6 @@ export default function TagList({ onSelectTag, selectedTagId }: { onSelectTag: (
             >
               <TagIcon size={14} className="mr-2 text-gray-400" />
               <span className="text-sm text-gray-700 truncate">{tag.name}</span>
-              <span className="ml-2 text-xs text-gray-400">({tag._count?.notes || 0})</span>
             </div>
             <button 
                 onClick={(e) => { e.stopPropagation(); deleteMutation.mutate(tag.id); }}

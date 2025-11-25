@@ -15,8 +15,6 @@ export default function AppLayout() {
   return (
     <div className="flex h-screen bg-white">
       <Sidebar 
-        onSelectNotebook={(id) => { setSelectedNotebookId(id); setSelectedTagId(undefined); }} 
-        selectedNotebookId={selectedNotebookId}
         onSelectTag={(id) => { setSelectedTagId(id); setSelectedNotebookId(undefined); }}
         selectedTagId={selectedTagId}
       />

@@ -1,16 +1,13 @@
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Home, FileText, Book, Tag, Trash2, Plus, LogOut, Settings } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import clsx from 'clsx';
 
 import TagList from '../../features/tags/TagList';
-import { useQueryClient } from '@tanstack/react-query'; // Assuming this import path
 
-export default function Sidebar({ onSelectNotebook, selectedNotebookId, onSelectTag, selectedTagId }: { onSelectNotebook: (id: string | undefined) => void, selectedNotebookId?: string, onSelectTag: (id: string | undefined) => void, selectedTagId?: string }) {
+export default function Sidebar({ onSelectTag, selectedTagId }: { onSelectTag: (id: string | undefined) => void, selectedTagId?: string }) {
   const location = useLocation();
   const { user, logout } = useAuthStore();
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
 
   const navItems = [
     { icon: Home, label: 'Home', path: '/' },
@@ -65,6 +62,10 @@ export default function Sidebar({ onSelectNotebook, selectedNotebookId, onSelect
             </Link>
           );
         })}
+        
+        <div className="mt-6 px-3">
+            <TagList onSelectTag={onSelectTag} selectedTagId={selectedTagId} />
+        </div>
       </nav>
 
       {/* Sync Status / Bottom */}

@@ -27,6 +27,23 @@ export default defineConfig({
             type: 'image/png'
           }
         ]
+      },
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+        runtimeCaching: [{
+          urlPattern: ({ url }) => url.pathname.startsWith('/api'),
+          handler: 'NetworkFirst',
+          options: {
+            cacheName: 'api-cache',
+            expiration: {
+              maxEntries: 100,
+              maxAgeSeconds: 60 * 60 * 24 // 1 day
+            },
+            cacheableResponse: {
+              statuses: [0, 200]
+            }
+          }
+        }]
       }
     })
   ],

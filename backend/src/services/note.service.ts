@@ -26,7 +26,10 @@ export const getNotes = async (userId: string, notebookId?: string, search?: str
       isTrashed: false,
     },
     orderBy: { updatedAt: 'desc' },
-    include: { tags: { include: { tag: true } } }
+    include: { 
+      tags: { include: { tag: true } },
+      attachments: true
+    }
   });
 };
 

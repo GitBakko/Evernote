@@ -22,10 +22,12 @@
 - 🔐 **Secure Authentication** - User registration and login with JWT-based authentication
 - 📓 **Notebook Management** - Organize notes into customizable notebooks
 - 🏷️ **Smart Tagging** - Tag and categorize notes for quick retrieval
-- ✏️ **Rich Text Editor** - Create and edit notes with a powerful editor
-- 🔍 **Search & Filter** - Find your notes instantly with advanced search
-- 🎨 **Clean UI/UX** - Intuitive and responsive design for all devices
-- ⚡ **Fast & Scalable** - Built on modern, performant technologies
+- ✏️ **Rich Text Editor** - Create and edit notes with a powerful editor (TipTap)
+- 🔍 **Search & Filter** - Full-text search and tag filtering
+- 📎 **Attachments** - Drag & drop file uploads
+- 📶 **Offline-First** - Fully functional without internet (Dexie.js + Sync Queue)
+- 📱 **PWA Ready** - Installable on mobile and desktop
+- 🎨 **Clean UI/UX** - Intuitive and responsive design
 
 ---
 
@@ -36,8 +38,10 @@
 - **TypeScript** - Type-safe development
 - **Vite** - Lightning-fast build tool
 - **Zustand** - Lightweight state management
+- **TanStack Query** - Server state & caching
+- **Dexie.js** - IndexedDB wrapper for offline storage
 - **React Router** - Client-side routing
-- **Axios** - HTTP client for API calls
+- **TailwindCSS** - Utility-first CSS framework
 
 ### Backend
 - **Fastify** - High-performance Node.js framework
@@ -73,9 +77,9 @@
    
    Create a `.env` file in the `backend` directory:
    ```env
-   DATABASE_URL="postgresql://user:password@localhost:5432/evernote"
+   DATABASE_URL="file:./dev.db"
    JWT_SECRET="your-secret-key"
-   PORT=3000
+   PORT=3001
    ```
 
 4. **Set up the database**
@@ -97,7 +101,7 @@
 cd backend
 npm run dev
 ```
-Server will start on `http://localhost:3000`
+Server will start on `http://localhost:3001`
 
 **Frontend Application**
 ```bash
@@ -140,6 +144,12 @@ Application will open on `http://localhost:5173`
 | POST | `/api/tags` | Create tag |
 | DELETE | `/api/tags/:id` | Delete tag |
 
+### Attachments
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/attachments` | Upload attachment |
+| DELETE | `/api/attachments/:id` | Delete attachment |
+
 ---
 
 ## 📁 Project Structure
@@ -158,22 +168,19 @@ Evernote/
 └── frontend/
     └── src/
         ├── components/        # Reusable components
-        ├── features/          # Feature modules
-        ├── store/             # State management
-        ├── hooks/             # Custom hooks
-        └── lib/               # Utilities
+        ├── features/          # Feature modules (Auth, Notes, Tags, Sync)
+        ├── store/             # Global state (Zustand)
+        ├── hooks/             # Custom hooks (Dexie, UI)
+        └── lib/               # Utilities (API, DB)
 ```
 
 ---
 
 ## 🎯 Roadmap
 
-- [ ] Real-time collaboration
-- [ ] File attachments support
-- [ ] Dark mode theme
+- [ ] Real-time collaboration (WebSockets)
+- [ ] Dark mode theme toggle
 - [ ] Export notes to PDF/Markdown
-- [ ] Mobile application
-- [ ] Advanced search with filters
 - [ ] Note sharing capabilities
 
 ---
