@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useOutletContext } from 'react-router-dom';
+import { useOutletContext, useSearchParams } from 'react-router-dom';
 import { Search } from 'lucide-react';
 import NoteList from './NoteList';
 import Editor from '../../components/editor/Editor';
@@ -10,12 +10,21 @@ import AttachmentList from '../../components/editor/AttachmentList';
 import { uploadAttachment, deleteAttachment } from '../attachments/attachmentService';
 import clsx from 'clsx';
 import toast from 'react-hot-toast';
-
 import { useNotes } from '../../hooks/useNotes';
 
 export default function NotesPage() {
   const { selectedNotebookId, selectedTagId } = useOutletContext<{ selectedNotebookId?: string, selectedTagId?: string }>();
-  const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedNoteId = searchParams.get('noteId');
+  
+  const setSelectedNoteId = (id: string | null) => {
+    if (id) {
+      setSearchParams({ noteId: id });
+    } else {
+      setSearchParams({});
+    }
+  };
+
   const [editorContent, setEditorContent] = useState('');
   const [title, setTitle] = useState('');
   const [searchQuery, setSearchQuery] = useState('');

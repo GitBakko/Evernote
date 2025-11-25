@@ -6,7 +6,7 @@ import clsx from 'clsx';
 import { useTags } from '../../hooks/useTags';
 
 export default function TagList({ onSelectTag, selectedTagId }: { onSelectTag: (tagId: string | undefined) => void, selectedTagId?: string }) {
-  const tags = useTags();
+  const { tags } = useTags();
   const isLoading = !tags;
   const [isCreating, setIsCreating] = useState(false);
   const [newTagName, setNewTagName] = useState('');

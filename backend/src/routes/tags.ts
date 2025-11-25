@@ -4,6 +4,7 @@ import * as tagService from '../services/tag.service';
 
 const createTagSchema = z.object({
   name: z.string().min(1),
+  id: z.string().uuid().optional(),
 });
 
 const addTagToNoteSchema = z.object({
@@ -15,9 +16,9 @@ export default async function tagRoutes(fastify: FastifyInstance) {
   fastify.addHook('onRequest', fastify.authenticate);
 
   fastify.post('/', async (request, reply) => {
-    const { name } = createTagSchema.parse(request.body);
+    const { name, id } = createTagSchema.parse(request.body);
     try {
-        const tag = await tagService.createTag(request.user.id, name);
+        const tag = await tagService.createTag(request.user.id, name, id);
         return tag;
     } catch (e: any) {
         if (e.code === 'P2002') {

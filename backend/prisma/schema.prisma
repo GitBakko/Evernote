@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -76,4 +76,8 @@ model Attachment {
   mimeType  String
   size      Int
   createdAt DateTime @default(now())
+
+  version   Int      @default(1)
+  hash      String?
+  isLatest  Boolean  @default(true)
 }

@@ -2,6 +2,7 @@ import { Outlet, Navigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { useAuthStore } from '../../store/authStore';
 import { useState } from 'react';
+import ErrorBoundary from '../ErrorBoundary';
 
 export default function AppLayout() {
   const { token } = useAuthStore();
@@ -19,7 +20,9 @@ export default function AppLayout() {
         selectedTagId={selectedTagId}
       />
       <div className="flex-1 flex overflow-hidden">
-        <Outlet context={{ selectedNotebookId, selectedTagId }} />
+        <ErrorBoundary>
+          <Outlet context={{ selectedNotebookId, selectedTagId }} />
+        </ErrorBoundary>
       </div>
     </div>
   );

@@ -28,7 +28,9 @@ export const getNotes = async (userId: string, notebookId?: string, search?: str
     orderBy: { updatedAt: 'desc' },
     include: { 
       tags: { include: { tag: true } },
-      attachments: true
+      attachments: {
+        where: { isLatest: true }
+      }
     }
   });
 };
@@ -36,7 +38,12 @@ export const getNotes = async (userId: string, notebookId?: string, search?: str
 export const getNote = async (userId: string, id: string) => {
   return prisma.note.findFirst({
     where: { id, userId },
-    include: { tags: { include: { tag: true } } }
+    include: { 
+      tags: { include: { tag: true } },
+      attachments: {
+        where: { isLatest: true }
+      }
+    }
   });
 };
 

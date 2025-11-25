@@ -5,6 +5,7 @@ interface Attachment {
   url: string;
   filename: string;
   size: number;
+  version?: number;
 }
 
 interface AttachmentListProps {
@@ -39,7 +40,7 @@ export default function AttachmentList({ attachments, onDelete, readonly = false
                   {att.filename}
                 </a>
                 <span className="text-xs text-gray-400">
-                  {(att.size / 1024).toFixed(1)} KB
+                  {(att.size / 1024).toFixed(1)} KB {att.version && `• v${att.version}`}
                 </span>
               </div>
             </div>

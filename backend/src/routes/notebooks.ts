@@ -4,6 +4,7 @@ import * as notebookService from '../services/notebook.service';
 
 const createNotebookSchema = z.object({
   name: z.string().min(1),
+  id: z.string().uuid().optional(),
 });
 
 const updateNotebookSchema = z.object({
@@ -14,8 +15,8 @@ export default async function notebookRoutes(fastify: FastifyInstance) {
   fastify.addHook('onRequest', fastify.authenticate);
 
   fastify.post('/', async (request, reply) => {
-    const { name } = createNotebookSchema.parse(request.body);
-    const notebook = await notebookService.createNotebook(request.user.id, name);
+    const { name, id } = createNotebookSchema.parse(request.body);
+    const notebook = await notebookService.createNotebook(request.user.id, name, id);
     return notebook;
   });
 

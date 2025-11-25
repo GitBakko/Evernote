@@ -30,6 +30,11 @@ export default async function authRoutes(fastify: FastifyInstance) {
         email,
         password: hashedPassword,
         name,
+        notebooks: {
+          create: {
+            name: 'First Notebook',
+          }
+        }
       },
     });
 

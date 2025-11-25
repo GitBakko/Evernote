@@ -73,11 +73,36 @@ export const updateNote = async (id: string, data: Partial<Note>) => {
 };
 
 export const deleteNote = async (id: string) => {
-  await db.notes.update(id, { isTrashed: true, syncStatus: 'updated' }); // Soft delete locally
-  // Or hard delete? If soft delete, we update.
-  // If we want to really delete:
-  // await db.notes.delete(id);
+  await db.notes.update(id, { isTrashed: true, syncStatus: 'updated' });
   
+  await db.syncQueue.add({
+      type: 'UPDATE',
+      entity: 'NOTE',
+      entityId: id,
+      data: { isTrashed: true },
+      createdAt: Date.now()
+  });
+};
+
+export const restoreNote = async (id: string) => {
+  await db.notes.update(id, { isTrashed: false, syncStatus: 'updated' });
+  await db.syncQueue.add({
+      type: 'UPDATE',
+      entity: 'NOTE',
+      entityId: id,
+      data: { isTrashed: false },
+      createdAt: Date.now()
+  });
+};
+
+export const permanentlyDeleteNote = async (id: string) => {
+  await db.notes.delete(id);
+  // We need to send a hard delete to backend.
+  // If the previous deleteNote sent a DELETE, maybe the note is already gone on server?
+  // If deleteNote sent DELETE, and backend did soft delete, then we need another DELETE to hard delete?
+  // Or maybe deleteNote should have sent UPDATE isTrashed=true?
+  
+  // Let's fix deleteNote to be a soft delete (UPDATE) and permanentlyDeleteNote to be hard delete (DELETE).
   await db.syncQueue.add({
       type: 'DELETE',
       entity: 'NOTE',

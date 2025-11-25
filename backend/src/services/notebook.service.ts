@@ -1,8 +1,9 @@
 import prisma from '../plugins/prisma';
 
-export const createNotebook = async (userId: string, name: string) => {
+export const createNotebook = async (userId: string, name: string, id?: string) => {
   return prisma.notebook.create({
     data: {
+      id,
       name,
       userId,
     },

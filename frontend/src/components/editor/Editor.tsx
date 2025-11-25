@@ -1,6 +1,7 @@
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { useEffect } from 'react';
+import EditorToolbar from './EditorToolbar';
 
 interface EditorProps {
   content: string;
@@ -18,7 +19,7 @@ export default function Editor({ content, onChange, editable = true }: EditorPro
     },
     editorProps: {
       attributes: {
-        class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none min-h-[500px]',
+        class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none min-h-[500px] px-8 py-4',
       },
     },
   });
@@ -35,8 +36,11 @@ export default function Editor({ content, onChange, editable = true }: EditorPro
   }
 
   return (
-    <div className="flex-1 overflow-y-auto p-8">
-      <EditorContent editor={editor} />
+    <div className="flex-1 flex flex-col overflow-hidden">
+      {editable && <EditorToolbar editor={editor} />}
+      <div className="flex-1 overflow-y-auto">
+        <EditorContent editor={editor} />
+      </div>
     </div>
   );
 }

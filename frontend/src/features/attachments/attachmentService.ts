@@ -23,7 +23,10 @@ export const uploadAttachment = async (noteId: string, file: File) => {
       const attachment = res.data;
       const note = await db.notes.get(noteId);
       if (note) {
-          const updatedAttachments = [...(note.attachments || []), attachment];
+          // Remove existing version of this file if present (by filename)
+          // This ensures we only show the latest version in the main list
+          const otherAttachments = (note.attachments || []).filter(a => a.filename !== attachment.filename);
+          const updatedAttachments = [...otherAttachments, attachment];
           await db.notes.update(noteId, { attachments: updatedAttachments, syncStatus: 'updated' });
       }
       

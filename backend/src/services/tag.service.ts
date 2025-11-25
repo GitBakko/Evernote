@@ -1,8 +1,9 @@
 import prisma from '../plugins/prisma';
 
-export const createTag = async (userId: string, name: string) => {
+export const createTag = async (userId: string, name: string, id?: string) => {
   return prisma.tag.create({
     data: {
+      id,
       name,
       userId,
     },

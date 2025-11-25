@@ -178,10 +178,30 @@ Evernote/
 
 ## 🎯 Roadmap
 
-- [ ] Real-time collaboration (WebSockets)
-- [ ] Dark mode theme toggle
-- [ ] Export notes to PDF/Markdown
-- [ ] Note sharing capabilities
+### Phase 1: MVP Core (Completed ✅)
+- [x] **Authentication**: Secure JWT login/register flow
+- [x] **Notes Management**: CRUD operations for notes
+- [x] **Organization**: Notebooks and Tags system
+- [x] **Search**: Full-text search with filters
+- [x] **Editor**: Rich text editing with Tiptap
+- [x] **Testing**: E2E tests with Playwright
+
+### Phase 2: Advanced Features (In Progress 🚧)
+- [~] **Attachments**: File upload/download (Basic implementation done)
+- [~] **Offline & Sync**: Local-first architecture with Dexie.js (Sync queue implemented)
+- [ ] **Tasks & Reminders**: 
+  - [x] Checkboxes in editor
+  - [ ] Due dates and reminders
+  - [ ] Task summary view
+- [ ] **Sharing**: 
+  - [ ] Public read-only links
+  - [ ] Collaborative editing (future)
+
+### Phase 3: Polish & Mobile
+- [ ] **Mobile UX**: Optimized touch interactions and layout
+- [ ] **Accessibility**: ARIA roles and keyboard navigation
+- [ ] **Themes**: Dark/Light mode toggle
+- [ ] **Export**: PDF/Markdown export options
 
 ---
 

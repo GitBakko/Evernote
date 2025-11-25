@@ -9,16 +9,44 @@ export const syncPull = async () => {
     // Pull Notebooks
     const notebooksRes = await api.get<Notebook[]>('/notebooks');
     await db.transaction('rw', db.notebooks, async () => {
-      await db.notebooks.clear(); // Simple strategy: clear and replace for now (careful with unsynced changes!)
-      // TODO: Better merge strategy
-      await db.notebooks.bulkPut(notebooksRes.data.map(n => ({ ...n, syncStatus: 'synced' })));
+      const dirtyNotebooks = await db.notebooks.where('syncStatus').notEqual('synced').toArray();
+      const dirtyIds = new Set(dirtyNotebooks.map(n => n.id));
+
+      const serverNotebooks = notebooksRes.data.map(n => ({
+        ...n,
+        syncStatus: 'synced' as const
+      }));
+
+      const notebooksToPut = serverNotebooks.filter(n => !dirtyIds.has(n.id));
+
+      const allLocalSyncedNotebooks = await db.notebooks.where('syncStatus').equals('synced').toArray();
+      const serverIds = new Set(serverNotebooks.map(n => n.id));
+      const toDeleteIds = allLocalSyncedNotebooks.filter(n => !serverIds.has(n.id)).map(n => n.id);
+
+      await db.notebooks.bulkDelete(toDeleteIds);
+      await db.notebooks.bulkPut(notebooksToPut);
     });
 
     // Pull Tags
     const tagsRes = await api.get<Tag[]>('/tags');
     await db.transaction('rw', db.tags, async () => {
-      await db.tags.clear();
-      await db.tags.bulkPut(tagsRes.data.map(t => ({ ...t, userId: 'current-user', syncStatus: 'synced' })));
+      const dirtyTags = await db.tags.where('syncStatus').notEqual('synced').toArray();
+      const dirtyIds = new Set(dirtyTags.map(t => t.id));
+
+      const serverTags = tagsRes.data.map(t => ({
+        ...t,
+        userId: 'current-user',
+        syncStatus: 'synced' as const
+      }));
+
+      const tagsToPut = serverTags.filter(t => !dirtyIds.has(t.id));
+
+      const allLocalSyncedTags = await db.tags.where('syncStatus').equals('synced').toArray();
+      const serverIds = new Set(serverTags.map(t => t.id));
+      const toDeleteIds = allLocalSyncedTags.filter(t => !serverIds.has(t.id)).map(t => t.id);
+
+      await db.tags.bulkDelete(toDeleteIds);
+      await db.tags.bulkPut(tagsToPut);
     });
 
     // Pull Notes
@@ -64,25 +92,42 @@ export const syncPush = async () => {
       if (item.entity === 'NOTE') {
         if (item.type === 'CREATE') {
            const { id, ...data } = item.data;
-           // We might need to handle ID mapping if backend generates IDs. 
-           // For now, assuming UUIDs generated on frontend or backend accepts our ID.
-           // If backend ignores our ID, we need to update local ID with server ID.
-           // Let's assume backend accepts ID or we handle it.
-           await api.post('/notes', data); 
+           await api.post('/notes', { ...data, id }); 
         } else if (item.type === 'UPDATE') {
            await api.put(`/notes/${item.entityId}`, item.data);
         } else if (item.type === 'DELETE') {
            await api.delete(`/notes/${item.entityId}`);
         }
+      } else if (item.entity === 'NOTEBOOK') {
+        if (item.type === 'CREATE') {
+          const { id, ...data } = item.data;
+          await api.post('/notebooks', { ...data, id });
+        } else if (item.type === 'UPDATE') {
+          await api.put(`/notebooks/${item.entityId}`, item.data);
+        } else if (item.type === 'DELETE') {
+          await api.delete(`/notebooks/${item.entityId}`);
+        }
+      } else if (item.entity === 'TAG') {
+        if (item.type === 'CREATE') {
+          const { id, ...data } = item.data;
+          await api.post('/tags', { ...data, id });
+        } else if (item.type === 'DELETE') {
+          await api.delete(`/tags/${item.entityId}`);
+        }
       }
-      // TODO: Handle Notebooks and Tags similarly
 
       // If successful, remove from queue
       if (item.id) await db.syncQueue.delete(item.id);
       
       // Update syncStatus of the entity
-      if (item.entity === 'NOTE' && item.type !== 'DELETE') {
+      if (item.type !== 'DELETE') {
+        if (item.entity === 'NOTE') {
           await db.notes.update(item.entityId, { syncStatus: 'synced' });
+        } else if (item.entity === 'NOTEBOOK') {
+          await db.notebooks.update(item.entityId, { syncStatus: 'synced' });
+        } else if (item.entity === 'TAG') {
+          await db.tags.update(item.entityId, { syncStatus: 'synced' });
+        }
       }
 
     } catch (error) {

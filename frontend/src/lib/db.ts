@@ -10,7 +10,16 @@ export interface LocalNote {
   createdAt: string;
   updatedAt: string;
   tags: { tag: { id: string; name: string } }[];
-  attachments: { id: string; url: string; filename: string; mimeType: string; size: number }[];
+  attachments: { 
+    id: string; 
+    url: string; 
+    filename: string; 
+    mimeType: string; 
+    size: number;
+    version?: number;
+    hash?: string;
+    isLatest?: boolean;
+  }[];
   syncStatus: 'synced' | 'created' | 'updated';
 }
 
@@ -49,7 +58,7 @@ class AppDatabase extends Dexie {
     super('EvernoteCloneDB');
     this.version(1).stores({
       notes: 'id, notebookId, updatedAt, syncStatus, isTrashed',
-      notebooks: 'id, updatedAt, syncStatus',
+      notebooks: 'id, name, updatedAt, syncStatus',
       tags: 'id, name, syncStatus',
       syncQueue: '++id, type, entity, createdAt'
     });
@@ -57,3 +66,4 @@ class AppDatabase extends Dexie {
 }
 
 export const db = new AppDatabase();
+

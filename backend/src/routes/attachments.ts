@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { saveAttachment, getAttachments, deleteAttachment } from '../services/attachment.service';
+import { saveAttachment, getAttachments, deleteAttachment, getAttachmentHistory } from '../services/attachment.service';
 import { z } from 'zod';
 import fs from 'fs';
 import path from 'path';
@@ -35,6 +35,18 @@ export async function attachmentRoutes(app: FastifyInstance) {
     const { noteId } = request.params as { noteId: string };
     const attachments = await getAttachments(noteId);
     return attachments;
+  });
+
+  app.get('/api/attachments/:noteId/history', { preValidation: [app.authenticate] }, async (request, reply) => {
+    const { noteId } = request.params as { noteId: string };
+    const { filename } = request.query as { filename: string };
+    
+    if (!filename) {
+      return reply.status(400).send({ message: 'filename query param is required' });
+    }
+
+    const history = await getAttachmentHistory(noteId, filename);
+    return history;
   });
 
   app.delete('/api/attachments/:id', { preValidation: [app.authenticate] }, async (request, reply) => {
