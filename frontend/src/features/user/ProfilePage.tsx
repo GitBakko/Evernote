@@ -2,10 +2,11 @@ import { useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../store/authStore';
 import { Button } from '../../components/ui/Button';
-import { User, Save, ArrowLeft, MapPin, Phone, Lock, Camera } from 'lucide-react';
+import { User, Save, ArrowLeft, Phone, Lock, Camera, Shield, KeyRound } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import SearchableSelect from '../../components/ui/SearchableSelect';
 import DatePicker from '../../components/ui/DatePicker';
+import Modal from '../../components/ui/Modal';
 import toast from 'react-hot-toast';
 import { FlagIcon } from '../../components/ui/FlagIcon';
 
@@ -33,6 +34,7 @@ export default function ProfilePage() {
 
   const [isLoading, setIsLoading] = useState(false);
   const [isPasswordLoading, setIsPasswordLoading] = useState(false);
+  const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
 
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,6 +60,7 @@ export default function ProfilePage() {
       await changePassword(passwordData.oldPassword, passwordData.newPassword);
       toast.success(t('profile.passwordUpdated'));
       setPasswordData({ oldPassword: '', newPassword: '', confirmPassword: '' });
+      setIsChangePasswordModalOpen(false);
     } catch (error) {
       toast.error(t('profile.passwordUpdateFailed'));
     } finally {
@@ -120,9 +123,9 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="space-y-8">
           {/* Personal Information */}
-          <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden dark:bg-gray-800 dark:border-gray-700">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden dark:bg-gray-800 dark:border-gray-700">
             <div className="p-6 border-b border-gray-200 dark:border-gray-700">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                 <User size={20} />
@@ -131,18 +134,6 @@ export default function ProfilePage() {
             </div>
             <form onSubmit={handleProfileSubmit} className="p-6 space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('common.language')}</label>
-                  <SearchableSelect
-                    options={[
-                      { value: 'it', label: 'Italiano', icon: <FlagIcon countryCode="it" /> },
-                      { value: 'en', label: 'English', icon: <FlagIcon countryCode="en" /> },
-                    ]}
-                    value={i18n.language.split('-')[0]}
-                    onChange={(val) => i18n.changeLanguage(val)}
-                    placeholder={t('common.select')}
-                  />
-                </div>
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('auth.name')}</label>
                   <input
@@ -204,21 +195,30 @@ export default function ProfilePage() {
                     className="w-full"
                   />
                 </div>
-                <div className="sm:col-span-2 space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('auth.placeOfBirth')}</label>
-                  <div className="relative">
-                    <MapPin size={16} className="absolute left-3 top-3 text-gray-400" />
-                    <input
-                      type="text"
-                      value={formData.placeOfBirth}
-                      onChange={(e) => setFormData({ ...formData, placeOfBirth: e.target.value })}
-                      className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                    />
-                  </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('common.language')}</label>
+                  <SearchableSelect
+                    options={[
+                      { value: 'it', label: 'Italiano', icon: <FlagIcon countryCode="it" /> },
+                      { value: 'en', label: 'English', icon: <FlagIcon countryCode="en" /> },
+                    ]}
+                    value={i18n.language.split('-')[0]}
+                    onChange={(val) => i18n.changeLanguage(val)}
+                    placeholder={t('common.select')}
+                  />
                 </div>
               </div>
 
-              <div className="pt-4 flex justify-end">
+              <div className="pt-4 flex justify-between items-center">
+                <Button
+                  type="button"
+                  variant="primary"
+                  className="bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-500 dark:bg-indigo-600 dark:hover:bg-indigo-500"
+                  onClick={() => setIsChangePasswordModalOpen(true)}
+                >
+                  <KeyRound size={18} className="mr-2" />
+                  {t('profile.changePassword')}
+                </Button>
                 <Button type="submit" variant="primary" disabled={isLoading}>
                   <Save size={18} className="mr-2" />
                   {isLoading ? t('common.saving') : t('common.save')}
@@ -226,52 +226,55 @@ export default function ProfilePage() {
               </div>
             </form>
           </div>
-
-          {/* Change Password */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden dark:bg-gray-800 dark:border-gray-700 h-fit">
-            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                <Lock size={20} />
-                {t('profile.changePassword')}
-              </h2>
-            </div>
-            <form onSubmit={handlePasswordSubmit} className="p-6 space-y-4">
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('auth.currentPassword')}</label>
-                <input
-                  type="password"
-                  value={passwordData.oldPassword}
-                  onChange={(e) => setPasswordData({ ...passwordData, oldPassword: e.target.value })}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('auth.newPassword')}</label>
-                <input
-                  type="password"
-                  value={passwordData.newPassword}
-                  onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('auth.confirmPassword')}</label>
-                <input
-                  type="password"
-                  value={passwordData.confirmPassword}
-                  onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                />
-              </div>
-              <div className="pt-4">
-                <Button type="submit" variant="secondary" className="w-full" disabled={isPasswordLoading}>
-                  {isPasswordLoading ? t('common.saving') : t('profile.updatePassword')}
-                </Button>
-              </div>
-            </form>
-          </div>
         </div>
       </div>
+
+      <Modal
+        isOpen={isChangePasswordModalOpen}
+        onClose={() => setIsChangePasswordModalOpen(false)}
+        title={t('profile.changePassword')}
+      >
+        <form onSubmit={handlePasswordSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('auth.currentPassword')}</label>
+            <input
+              type="password"
+              value={passwordData.oldPassword}
+              onChange={(e) => setPasswordData({ ...passwordData, oldPassword: e.target.value })}
+              className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('auth.newPassword')}</label>
+            <input
+              type="password"
+              value={passwordData.newPassword}
+              onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+              className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('auth.confirmPassword')}</label>
+            <input
+              type="password"
+              value={passwordData.confirmPassword}
+              onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+              className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              required
+            />
+          </div>
+          <div className="pt-4 flex justify-end gap-3">
+            <Button type="button" variant="ghost" onClick={() => setIsChangePasswordModalOpen(false)}>
+              {t('common.cancel')}
+            </Button>
+            <Button type="submit" variant="primary" disabled={isPasswordLoading}>
+              {isPasswordLoading ? t('common.saving') : t('profile.updatePassword')}
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

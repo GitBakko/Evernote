@@ -25,6 +25,7 @@ import {
   Paperclip,
   Type,
   ChevronDown,
+  ALargeSmall,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
@@ -66,16 +67,6 @@ const ToolbarButton = ({
   </button>
 );
 
-// Font family options
-const FONT_FAMILIES = [
-  { label: 'Default', value: '' },
-  { label: 'Arial', value: 'Arial' },
-  { label: 'Times New Roman', value: 'Times New Roman' },
-  { label: 'Courier New', value: 'Courier New' },
-  { label: 'Georgia', value: 'Georgia' },
-  { label: 'Verdana', value: 'Verdana' },
-];
-
 // Font size options (using inline styles)
 const FONT_SIZES = [
   { label: 'Small', value: '12px' },
@@ -91,9 +82,10 @@ interface DropdownProps {
   onChange: (value: string) => void;
   placeholder: string;
   title: string;
+  icon?: React.ReactNode;
 }
 
-const ToolbarDropdown = ({ options, value, onChange, placeholder, title }: DropdownProps) => {
+const ToolbarDropdown = ({ options, value, onChange, placeholder, title, icon }: DropdownProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -116,7 +108,7 @@ const ToolbarDropdown = ({ options, value, onChange, placeholder, title }: Dropd
         title={title}
         className="flex items-center gap-1 px-2 py-1.5 rounded text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 transition-colors min-w-[80px]"
       >
-        <Type size={14} />
+        {icon || <Type size={14} />}
         <span className="truncate">{selectedLabel}</span>
         <ChevronDown size={12} className={clsx("transition-transform", isOpen && "rotate-180")} />
       </button>
@@ -153,13 +145,24 @@ export default function EditorToolbar({ editor, onAttach }: EditorToolbarProps) 
     return null;
   }
 
+  // Font family options
+  const fontFamilies = [
+    { label: t('editor.fontDefault'), value: '' },
+    { label: 'Arial', value: 'Arial' },
+    { label: 'Times New Roman', value: 'Times New Roman' },
+    { label: 'Courier New', value: 'Courier New' },
+    { label: 'Georgia', value: 'Georgia' },
+    { label: 'Verdana', value: 'Verdana' },
+  ];
+
   const currentFontFamily = editor.getAttributes('textStyle').fontFamily || '';
+  const currentFontSize = editor.getAttributes('textStyle').fontSize || '';
 
   return (
     <div className="flex gap-1 p-2 border-b border-gray-200 bg-white flex-wrap sticky top-0 z-10 dark:bg-gray-900 dark:border-gray-800">
       {/* Font Family Dropdown */}
       <ToolbarDropdown
-        options={FONT_FAMILIES}
+        options={fontFamilies}
         value={currentFontFamily}
         onChange={(value) => {
           if (value) {
@@ -170,6 +173,23 @@ export default function EditorToolbar({ editor, onAttach }: EditorToolbarProps) 
         }}
         placeholder={t('editor.fontFamily')}
         title={t('editor.fontFamily')}
+        icon={<Type size={14} />}
+      />
+
+      {/* Font Size Dropdown */}
+      <ToolbarDropdown
+        options={FONT_SIZES}
+        value={currentFontSize}
+        onChange={(value) => {
+          if (value) {
+            editor.chain().focus().setFontSize(value).run();
+          } else {
+            editor.chain().focus().unsetFontSize().run();
+          }
+        }}
+        placeholder={t('editor.fontSize')}
+        title={t('editor.fontSize')}
+        icon={<ALargeSmall size={14} />}
       />
 
       <div className="w-px bg-gray-200 mx-1 dark:bg-gray-700" />

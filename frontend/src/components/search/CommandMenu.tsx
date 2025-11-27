@@ -82,8 +82,9 @@ export default function CommandMenu() {
               {filteredNotes.map((note) => (
                 <Command.Item
                   key={note.id}
+                  value={`note-${note.id}`}
                   onSelect={() => runCommand(() => navigate(`/notes?noteId=${note.id}`))}
-                  className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none text-gray-700 dark:text-gray-200 aria-selected:bg-emerald-100 dark:aria-selected:bg-emerald-900/50 aria-selected:text-emerald-900 dark:aria-selected:text-emerald-100 data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+                  className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 aria-selected:bg-emerald-100 dark:aria-selected:bg-emerald-900/50 aria-selected:text-emerald-900 dark:aria-selected:text-emerald-100 data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
                 >
                   <FileText className="mr-2 h-4 w-4" />
                   <span>{note.title || t('notes.untitled')}</span>
@@ -97,8 +98,9 @@ export default function CommandMenu() {
               {filteredNotebooks.map((notebook) => (
                 <Command.Item
                   key={notebook.id}
+                  value={`notebook-${notebook.id}`}
                   onSelect={() => runCommand(() => navigate(`/notes?notebookId=${notebook.id}`))}
-                  className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none text-gray-700 dark:text-gray-200 aria-selected:bg-emerald-100 dark:aria-selected:bg-emerald-900/50 aria-selected:text-emerald-900 dark:aria-selected:text-emerald-100 data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+                  className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 aria-selected:bg-emerald-100 dark:aria-selected:bg-emerald-900/50 aria-selected:text-emerald-900 dark:aria-selected:text-emerald-100 data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
                 >
                   <Book className="mr-2 h-4 w-4" />
                   <span>{notebook.name}</span>
@@ -112,8 +114,9 @@ export default function CommandMenu() {
               {filteredTags.map((tag) => (
                 <Command.Item
                   key={tag.id}
+                  value={`tag-${tag.id}`}
                   onSelect={() => runCommand(() => navigate(`/notes?tagId=${tag.id}`))}
-                  className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none text-gray-700 dark:text-gray-200 aria-selected:bg-emerald-100 dark:aria-selected:bg-emerald-900/50 aria-selected:text-emerald-900 dark:aria-selected:text-emerald-100 data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+                  className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 aria-selected:bg-emerald-100 dark:aria-selected:bg-emerald-900/50 aria-selected:text-emerald-900 dark:aria-selected:text-emerald-100 data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
                 >
                   <Tag className="mr-2 h-4 w-4" />
                   <span>{tag.name}</span>
@@ -126,22 +129,25 @@ export default function CommandMenu() {
 
           <Command.Group heading={t('common.actions')} className="[&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-gray-500 [&_[cmdk-group-heading]]:dark:text-gray-400 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5">
             <Command.Item
+              value="new-note"
               onSelect={() => runCommand(() => navigate('/notes'))}
-              className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none text-gray-700 dark:text-gray-200 aria-selected:bg-emerald-100 dark:aria-selected:bg-emerald-900/50 aria-selected:text-emerald-900 dark:aria-selected:text-emerald-100"
+              className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 aria-selected:bg-emerald-100 dark:aria-selected:bg-emerald-900/50 aria-selected:text-emerald-900 dark:aria-selected:text-emerald-100"
             >
               <Plus className="mr-2 h-4 w-4" />
               <span>{t('notes.newNote')}</span>
             </Command.Item>
             <Command.Item
+              value="create-notebook"
               onSelect={() => runCommand(() => navigate('/notebooks'))}
-              className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none text-gray-700 dark:text-gray-200 aria-selected:bg-emerald-100 dark:aria-selected:bg-emerald-900/50 aria-selected:text-emerald-900 dark:aria-selected:text-emerald-100"
+              className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 aria-selected:bg-emerald-100 dark:aria-selected:bg-emerald-900/50 aria-selected:text-emerald-900 dark:aria-selected:text-emerald-100"
             >
               <Book className="mr-2 h-4 w-4" />
               <span>{t('notebooks.create')}</span>
             </Command.Item>
             <Command.Item
+              value="open-trash"
               onSelect={() => runCommand(() => navigate('/trash'))}
-              className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none text-gray-700 dark:text-gray-200 aria-selected:bg-emerald-100 dark:aria-selected:bg-emerald-900/50 aria-selected:text-emerald-900 dark:aria-selected:text-emerald-100"
+              className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 aria-selected:bg-emerald-100 dark:aria-selected:bg-emerald-900/50 aria-selected:text-emerald-900 dark:aria-selected:text-emerald-100"
             >
               <Trash2 className="mr-2 h-4 w-4" />
               <span>{t('sidebar.trash')}</span>

@@ -50,7 +50,21 @@ export default async function authRoutes(fastify: FastifyInstance) {
     });
 
     const token = fastify.jwt.sign({ id: user.id, email: user.email });
-    return { token, user: { id: user.id, email: user.email, name: user.name } };
+    return {
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        surname: user.surname,
+        gender: user.gender,
+        dateOfBirth: user.dateOfBirth,
+        placeOfBirth: user.placeOfBirth,
+        mobile: user.mobile,
+        avatarUrl: user.avatarUrl,
+        createdAt: user.createdAt
+      }
+    };
   });
 
   fastify.post('/login', async (request, reply) => {
@@ -67,7 +81,21 @@ export default async function authRoutes(fastify: FastifyInstance) {
     }
 
     const token = fastify.jwt.sign({ id: user.id, email: user.email });
-    return { token, user: { id: user.id, email: user.email, name: user.name } };
+    return {
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        surname: user.surname,
+        gender: user.gender,
+        dateOfBirth: user.dateOfBirth,
+        placeOfBirth: user.placeOfBirth,
+        mobile: user.mobile,
+        avatarUrl: user.avatarUrl,
+        createdAt: user.createdAt
+      }
+    };
   });
 
   fastify.post('/forgot-password', async (request, reply) => {
@@ -89,7 +117,18 @@ export default async function authRoutes(fastify: FastifyInstance) {
   fastify.get('/me', { onRequest: [fastify.authenticate] }, async (request) => {
     const user = await prisma.user.findUnique({
       where: { id: request.user.id },
-      select: { id: true, email: true, name: true }
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        surname: true,
+        gender: true,
+        dateOfBirth: true,
+        placeOfBirth: true,
+        mobile: true,
+        avatarUrl: true,
+        createdAt: true
+      }
     });
     return user;
   });
