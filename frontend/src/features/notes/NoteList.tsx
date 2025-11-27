@@ -1,7 +1,9 @@
-import { type Note } from './noteService';
+import { useTranslation } from 'react-i18next';
 import { formatDistanceToNow } from 'date-fns';
+import { it, enUS } from 'date-fns/locale';
+import { type Note } from './noteService';
 import clsx from 'clsx';
-import { FileText } from 'lucide-react';
+import { FileText, Bell, CheckCircle } from 'lucide-react';
 
 interface NoteListProps {
   notes: Note[];
@@ -10,31 +12,41 @@ interface NoteListProps {
 }
 
 export default function NoteList({ notes, selectedNoteId, onSelectNote }: NoteListProps) {
+  const { t, i18n } = useTranslation();
+  const dateLocale = i18n.language === 'it' ? it : enUS;
+
   if (!notes || notes.length === 0) {
-    return <div className="p-4 text-gray-500 text-sm text-center mt-10">No notes found.</div>;
+    return <div className="p-4 text-gray-500 text-sm text-center mt-10 dark:text-gray-400">{t('notes.noNotesFound')}</div>;
   }
 
   return (
-    <div className="flex-1 overflow-y-auto bg-white">
+    <div className="flex-1 overflow-y-auto bg-white dark:bg-gray-900">
       {notes.map((note) => (
         <div
           key={note.id}
           onClick={() => onSelectNote(note.id)}
           className={clsx(
-            'cursor-pointer border-b border-gray-100 p-4 transition-colors hover:bg-gray-50 group',
-            selectedNoteId === note.id ? 'bg-emerald-50 border-l-4 border-l-emerald-500' : 'border-l-4 border-l-transparent pl-5'
+            'cursor-pointer border-b border-gray-100 p-4 transition-colors hover:bg-gray-50 group dark:border-gray-800 dark:hover:bg-gray-800',
+            selectedNoteId === note.id ? 'bg-emerald-50 border-l-4 border-l-emerald-500 dark:bg-emerald-900/20' : 'border-l-4 border-l-transparent pl-5'
           )}
         >
-          <h3 className={clsx('mb-1 text-sm font-semibold truncate', selectedNoteId === note.id ? 'text-emerald-900' : 'text-gray-900')}>
-            {note.title || 'Untitled Note'}
+          <h3 className={clsx('mb-1 text-sm font-semibold truncate', selectedNoteId === note.id ? 'text-emerald-900 dark:text-emerald-400' : 'text-gray-900 dark:text-white')}>
+            {note.title || t('notes.untitled')}
           </h3>
-          <p className="mb-2 line-clamp-2 text-xs text-gray-500 h-8">
-            {note.content ? note.content.replace(/<[^>]*>?/gm, '') : 'No content'}
+          <p className="mb-2 line-clamp-2 text-xs text-gray-500 h-8 dark:text-gray-400">
+            {note.content ? note.content.replace(/<[^>]*>?/gm, '') : t('notes.noContent')}
           </p>
-          <div className="flex items-center justify-between text-xs text-gray-400">
-            <span>{formatDistanceToNow(new Date(note.updatedAt), { addSuffix: true })}</span>
+          <div className="flex items-center justify-between text-xs text-gray-400 dark:text-gray-500">
+            <div className="flex items-center gap-2">
+                <span>{formatDistanceToNow(new Date(note.updatedAt), { addSuffix: true, locale: dateLocale })}</span>
+                {note.reminderDate && (
+                   <span className={clsx("flex items-center gap-1", note.isReminderDone ? "text-emerald-500" : "text-amber-500")} title={new Date(note.reminderDate).toLocaleString()}>
+                      {note.isReminderDone ? <CheckCircle size={12} /> : <Bell size={12} />}
+                   </span>
+                )}
+            </div>
             {note.tags && note.tags.length > 0 && (
-              <span className="flex items-center gap-1 bg-gray-100 px-1.5 py-0.5 rounded text-gray-500">
+              <span className="flex items-center gap-1 bg-gray-100 px-1.5 py-0.5 rounded text-gray-500 dark:bg-gray-800 dark:text-gray-400">
                 <FileText size={10} />
                 <span className="text-[10px]">{note.tags.length}</span>
               </span>

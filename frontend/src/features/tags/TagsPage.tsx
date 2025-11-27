@@ -1,81 +1,164 @@
-import { useState, type FormEvent } from 'react';
-import { Tag as TagIcon, Trash2, Plus } from 'lucide-react';
-import { useTags } from '../../hooks/useTags';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getTags, createTag, deleteTag, type Tag } from './tagService';
+import { Plus, Tag as TagIcon, Trash2, Menu } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
+import { Button } from '../../components/ui/Button';
+import { Card } from '../../components/ui/Card';
+import { InputDialog } from '../../components/ui/InputDialog';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import { useIsMobile } from '../../hooks/useIsMobile';
+import { useUIStore } from '../../store/uiStore';
+import TagNotesSidebar from './TagNotesSidebar';
 
 export default function TagsPage() {
-  const { tags, createTag, deleteTag } = useTags();
-  const [newTagName, setNewTagName] = useState('');
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
+  const { toggleSidebar } = useUIStore();
 
-  const handleCreate = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!newTagName.trim()) return;
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [deletingTag, setDeletingTag] = useState<Tag | null>(null);
+  const [selectedTag, setSelectedTag] = useState<Tag | null>(null);
 
-    try {
-      await createTag(newTagName.trim());
-      setNewTagName('');
-      toast.success('Tag created');
-    } catch (error) {
-      toast.error('Failed to create tag');
-    }
-  };
+  const { data: tags, isLoading } = useQuery({
+    queryKey: ['tags'],
+    queryFn: getTags,
+  });
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this tag?')) {
-      try {
-        await deleteTag(id);
-        toast.success('Tag deleted');
-      } catch (error) {
-        toast.error('Failed to delete tag');
+  const createMutation = useMutation({
+    mutationFn: createTag,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tags'] });
+      toast.success(t('tags.created'));
+      setIsCreateOpen(false);
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteTag,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tags'] });
+      toast.success(t('tags.deleted'));
+      setDeletingTag(null);
+      if (selectedTag?.id === deletingTag?.id) {
+        setSelectedTag(null);
       }
-    }
-  };
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
+  if (isLoading) {
+    return <div className="p-8 text-center text-gray-500">{t('common.loading')}</div>;
+  }
 
   return (
-    <div className="flex-1 h-full bg-gray-50 flex flex-col overflow-hidden">
-      <div className="p-8 pb-4 border-b border-gray-200 bg-white">
-        <h1 className="text-2xl font-bold text-gray-900">Tags</h1>
-        <p className="text-gray-500 text-sm mt-1">Manage your tags</p>
-      </div>
-
-      <div className="p-8">
-        <form onSubmit={handleCreate} className="flex gap-2 mb-8 max-w-md">
-          <input
-            type="text"
-            placeholder="New tag name..."
-            value={newTagName}
-            onChange={(e) => setNewTagName(e.target.value)}
-            className="flex-1 border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-emerald-500"
-          />
-          <button type="submit" className="bg-emerald-600 text-white px-4 py-2 rounded hover:bg-emerald-700 flex items-center gap-2">
-            <Plus size={18} />
-            Add Tag
-          </button>
-        </form>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {tags?.map((tag) => (
-            <div key={tag.id} className="bg-white border border-gray-200 rounded-lg p-4 flex items-center justify-between hover:shadow-sm transition-shadow">
-              <div className="flex items-center gap-2 text-gray-700">
-                <TagIcon size={18} className="text-emerald-600" />
-                <span className="font-medium">{tag.name}</span>
-              </div>
-              <button 
-                onClick={() => handleDelete(tag.id)}
-                className="text-gray-400 hover:text-red-600 transition-colors"
-                title="Delete Tag"
-              >
-                <Trash2 size={16} />
+    <div className="flex h-full bg-gray-50 dark:bg-gray-900 relative overflow-hidden">
+      <div className="flex-1 flex flex-col h-full overflow-hidden">
+        <div className="bg-white border-b border-gray-200 px-4 py-4 sm:px-8 sm:py-6 flex items-center justify-between dark:bg-gray-900 dark:border-gray-800 flex-shrink-0">
+          <div className="flex items-center gap-3">
+            {isMobile && (
+              <button onClick={toggleSidebar} className="text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200">
+                <Menu size={24} />
               </button>
+            )}
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('sidebar.tags')}</h1>
+              <p className="text-sm text-gray-500 mt-1 dark:text-gray-400">{t('tags.count', { count: tags?.length || 0 })}</p>
             </div>
-          ))}
+          </div>
+          <Button onClick={() => setIsCreateOpen(true)} className="flex items-center gap-2">
+            <Plus size={18} />
+            <span className="hidden sm:inline">{t('tags.create')}</span>
+          </Button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4 sm:p-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {tags?.map((tag) => (
+              <Card
+                key={tag.id}
+                className={`group hover:shadow-md transition-all cursor-pointer dark:bg-gray-800 dark:border-gray-700 ${selectedTag?.id === tag.id ? 'ring-2 ring-emerald-500 shadow-md' : ''}`}
+                onClick={() => setSelectedTag(tag)}
+              >
+                <div className="p-5 flex items-center justify-between">
+                  <div className="flex items-center gap-3 overflow-hidden">
+                    <div className="p-2 bg-blue-100 rounded-lg text-blue-600 dark:bg-blue-900 dark:text-blue-400 flex-shrink-0">
+                      <TagIcon size={20} />
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="font-semibold text-gray-900 truncate dark:text-white" title={tag.name}>
+                        {tag.name}
+                      </h3>
+                      <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full dark:bg-gray-700 dark:text-gray-300">
+                        {tag._count?.notes || 0}
+                      </span>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDeletingTag(tag);
+                    }}
+                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors opacity-0 group-hover:opacity-100 dark:hover:bg-red-900 dark:hover:text-red-400"
+                    title={t('common.delete')}
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              </Card>
+            ))}
+          </div>
+
           {tags?.length === 0 && (
-              <div className="col-span-full text-center text-gray-500 py-8">
-                  No tags found. Create one to organize your notes.
+            <div className="text-center py-20">
+              <div className="inline-flex p-4 bg-gray-100 rounded-full text-gray-400 mb-4 dark:bg-gray-800 dark:text-gray-500">
+                <TagIcon size={48} />
               </div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2 dark:text-white">{t('tags.emptyTitle')}</h3>
+              <p className="text-gray-500 mb-6 dark:text-gray-400">{t('tags.emptyDescription')}</p>
+              <Button onClick={() => setIsCreateOpen(true)}>
+                {t('tags.createFirst')}
+              </Button>
+            </div>
           )}
         </div>
       </div>
+
+      {selectedTag && (
+        <TagNotesSidebar
+          tagId={selectedTag.id}
+          tagName={selectedTag.name}
+          onClose={() => setSelectedTag(null)}
+        />
+      )}
+
+      <InputDialog
+        isOpen={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
+        onConfirm={(name) => createMutation.mutate(name)}
+        title={t('tags.createTitle')}
+        message={t('tags.createDescription')}
+        placeholder={t('tags.namePlaceholder')}
+        confirmText={t('common.create')}
+      />
+
+      <ConfirmDialog
+        isOpen={!!deletingTag}
+        onClose={() => setDeletingTag(null)}
+        onConfirm={() => deletingTag && deleteMutation.mutate(deletingTag.id)}
+        title={t('tags.deleteTitle')}
+        message={t('tags.deleteConfirm', { name: deletingTag?.name })}
+        confirmText={t('common.delete')}
+        variant="danger"
+      />
     </div>
   );
 }

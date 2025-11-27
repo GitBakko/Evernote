@@ -1,6 +1,4 @@
-<div align="center">
-
-# 📝 Evernote Clone
+# 📝 Notiq
 
 ### *A modern, full-stack note-taking application built with TypeScript*
 
@@ -63,8 +61,8 @@
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/GitBakko/Evernote.git
-   cd Evernote
+   git clone https://github.com/GitBakko/Notiq.git
+   cd Notiq
    ```
 
 2. **Install backend dependencies**
@@ -155,7 +153,7 @@ Application will open on `http://localhost:5173`
 ## 📁 Project Structure
 
 ```
-Evernote/
+Notiq/
 ├── backend/
 │   ├── prisma/
 │   │   └── schema.prisma      # Database schema
@@ -189,12 +187,12 @@ Evernote/
 ### Phase 2: Advanced Features (In Progress 🚧)
 - [~] **Attachments**: File upload/download (Basic implementation done)
 - [~] **Offline & Sync**: Local-first architecture with Dexie.js (Sync queue implemented)
-- [ ] **Tasks & Reminders**: 
+- [x] **Tasks & Reminders**: 
   - [x] Checkboxes in editor
-  - [ ] Due dates and reminders
-  - [ ] Task summary view
-- [ ] **Sharing**: 
-  - [ ] Public read-only links
+  - [x] Due dates and reminders
+  - [x] Task summary view
+- [x] **Sharing**: 
+  - [x] Public read-only links
   - [ ] Collaborative editing (future)
 
 ### Phase 3: Polish & Mobile
@@ -207,7 +205,7 @@ Evernote/
 
 ## 🤝 Contributing
 
-Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/GitBakko/Evernote/issues).
+Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/GitBakko/Notiq/issues).
 
 1. Fork the Project
 2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)

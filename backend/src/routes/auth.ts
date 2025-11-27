@@ -4,6 +4,8 @@ import { z } from 'zod';
 import prisma from '../plugins/prisma';
 import '../types';
 
+import { requestPasswordReset, resetPassword } from '../services/auth.service';
+
 const registerSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
@@ -13,6 +15,15 @@ const registerSchema = z.object({
 const loginSchema = z.object({
   email: z.string().email(),
   password: z.string(),
+});
+
+const forgotPasswordSchema = z.object({
+  email: z.string().email(),
+});
+
+const resetPasswordSchema = z.object({
+  token: z.string(),
+  newPassword: z.string().min(6),
 });
 
 export default async function authRoutes(fastify: FastifyInstance) {
@@ -57,6 +68,22 @@ export default async function authRoutes(fastify: FastifyInstance) {
 
     const token = fastify.jwt.sign({ id: user.id, email: user.email });
     return { token, user: { id: user.id, email: user.email, name: user.name } };
+  });
+
+  fastify.post('/forgot-password', async (request, reply) => {
+    const { email } = forgotPasswordSchema.parse(request.body);
+    await requestPasswordReset(email);
+    return { message: 'If the email exists, a reset link has been sent.' };
+  });
+
+  fastify.post('/reset-password', async (request, reply) => {
+    const { token, newPassword } = resetPasswordSchema.parse(request.body);
+    try {
+      await resetPassword(token, newPassword);
+      return { message: 'Password reset successfully' };
+    } catch (error) {
+      return reply.status(400).send({ message: 'Invalid or expired token' });
+    }
   });
 
   fastify.get('/me', { onRequest: [fastify.authenticate] }, async (request) => {

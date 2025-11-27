@@ -16,6 +16,12 @@ export const getTags = async () => {
 };
 
 export const createTag = async (name: string) => {
+  // Check for duplicate name
+  const existing = await db.tags.where('name').equals(name).first();
+  if (existing) {
+    throw new Error('A tag with this name already exists.');
+  }
+
   const id = uuidv4();
   const newTag = {
     id,
@@ -52,26 +58,21 @@ export const addTagToNote = async (noteId: string, tagId: string) => {
   const tag = await db.tags.get(tagId);
   
   if (note && tag) {
+      // Check if tag is already associated
+      if (note.tags?.some(t => t.tag.id === tagId)) {
+          return; // Already associated
+      }
+
       const updatedTags = [...(note.tags || []), { tag: { id: tag.id, name: tag.name } }];
       await db.notes.update(noteId, { tags: updatedTags, syncStatus: 'updated' });
-      // We also need to queue this. 
-      // Ideally syncQueue should handle relation updates. 
-      // For MVP, maybe we treat it as Note update?
-      // Yes, since tags are embedded in Note for now in local DB.
+      
       await db.syncQueue.add({
           type: 'UPDATE',
           entity: 'NOTE',
           entityId: noteId,
-          data: { tags: updatedTags }, // This might be tricky for backend if it expects separate endpoint
+          data: { tags: updatedTags }, 
           createdAt: Date.now()
       });
-      // Wait, backend expects /api/tags/note endpoint calls.
-      // So we might need a specific sync action for this.
-      // Let's ignore complex relation sync for a moment or handle it in syncPush with custom logic.
-      // Or better: just call the API directly if online? No, offline first.
-      // Let's assume we send the whole note update to PUT /notes/:id and backend handles tags?
-      // My backend updateNote implementation might not handle tags.
-      // Let's check backend updateNote.
   }
 };
 
@@ -81,5 +82,12 @@ export const removeTagFromNote = async (noteId: string, tagId: string) => {
       const updatedTags = note.tags.filter(t => t.tag.id !== tagId);
       await db.notes.update(noteId, { tags: updatedTags, syncStatus: 'updated' });
       // Queue update
+      await db.syncQueue.add({
+          type: 'UPDATE',
+          entity: 'NOTE',
+          entityId: noteId,
+          data: { tags: updatedTags }, 
+          createdAt: Date.now()
+      });
   }
 };

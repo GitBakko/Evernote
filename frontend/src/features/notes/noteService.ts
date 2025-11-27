@@ -13,6 +13,13 @@ export interface Note {
   updatedAt: string;
   tags?: { tag: Tag }[];
   attachments?: { id: string; url: string; filename: string; mimeType: string; size: number }[];
+  reminderDate?: string | null;
+  isReminderDone?: boolean;
+  isPublic?: boolean;
+  shareId?: string | null;
+  isPinned?: boolean;
+  isVault?: boolean;
+  isEncrypted?: boolean;
 }
 
 export const getNotes = async (notebookId?: string, search?: string, tagId?: string) => {
@@ -30,10 +37,39 @@ export const getNote = async (id: string) => {
   return res.data;
 };
 
+import { syncPush } from '../../features/sync/syncService';
+
+export const toggleShare = async (id: string) => {
+  await syncPush(); // Ensure note exists on backend
+  const res = await api.post<Note>(`/notes/${id}/share`);
+  return res.data;
+};
+
+export const shareNote = async (id: string, email: string, permission: 'READ' | 'WRITE' = 'READ') => {
+  await syncPush(); // Ensure note exists on backend
+  const res = await api.post(`/share/notes/${id}`, { email, permission });
+  return res.data;
+};
+
+export const revokeShare = async (id: string, userId: string) => {
+  const res = await api.delete(`/share/notes/${id}/${userId}`);
+  return res.data;
+};
+
+export const getSharedNotes = async () => {
+  const res = await api.get<any[]>('/share/notes'); // Returns SharedNote[] which includes note data
+  return res.data;
+};
+
+export const getPublicNote = async (shareId: string) => {
+  const res = await api.get<Note>(`/share/public/${shareId}`);
+  return res.data;
+};
+
 import { db } from '../../lib/db';
 import { v4 as uuidv4 } from 'uuid';
 
-export const createNote = async (data: { title: string; notebookId: string; content?: string }) => {
+export const createNote = async (data: { title: string; notebookId: string; content?: string; isVault?: boolean; isEncrypted?: boolean }) => {
   const id = uuidv4();
   const newNote = {
     id,
@@ -41,6 +77,8 @@ export const createNote = async (data: { title: string; notebookId: string; cont
     content: data.content || '',
     userId: 'current-user', // We need the user ID here. Ideally passed or retrieved from store.
     isTrashed: false,
+    isVault: data.isVault || false,
+    isEncrypted: data.isEncrypted || false,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     tags: [],
@@ -50,11 +88,11 @@ export const createNote = async (data: { title: string; notebookId: string; cont
 
   await db.notes.add(newNote);
   await db.syncQueue.add({
-      type: 'CREATE',
-      entity: 'NOTE',
-      entityId: id,
-      data: { ...data, id }, // Send ID to backend if supported
-      createdAt: Date.now()
+    type: 'CREATE',
+    entity: 'NOTE',
+    entityId: id,
+    data: { ...data, id }, // Send ID to backend if supported
+    createdAt: Date.now()
   });
 
   return newNote;
@@ -63,35 +101,35 @@ export const createNote = async (data: { title: string; notebookId: string; cont
 export const updateNote = async (id: string, data: Partial<Note>) => {
   await db.notes.update(id, { ...data, updatedAt: new Date().toISOString(), syncStatus: 'updated' });
   await db.syncQueue.add({
-      type: 'UPDATE',
-      entity: 'NOTE',
-      entityId: id,
-      data,
-      createdAt: Date.now()
+    type: 'UPDATE',
+    entity: 'NOTE',
+    entityId: id,
+    data,
+    createdAt: Date.now()
   });
   return db.notes.get(id);
 };
 
 export const deleteNote = async (id: string) => {
   await db.notes.update(id, { isTrashed: true, syncStatus: 'updated' });
-  
+
   await db.syncQueue.add({
-      type: 'UPDATE',
-      entity: 'NOTE',
-      entityId: id,
-      data: { isTrashed: true },
-      createdAt: Date.now()
+    type: 'UPDATE',
+    entity: 'NOTE',
+    entityId: id,
+    data: { isTrashed: true },
+    createdAt: Date.now()
   });
 };
 
 export const restoreNote = async (id: string) => {
   await db.notes.update(id, { isTrashed: false, syncStatus: 'updated' });
   await db.syncQueue.add({
-      type: 'UPDATE',
-      entity: 'NOTE',
-      entityId: id,
-      data: { isTrashed: false },
-      createdAt: Date.now()
+    type: 'UPDATE',
+    entity: 'NOTE',
+    entityId: id,
+    data: { isTrashed: false },
+    createdAt: Date.now()
   });
 };
 
@@ -101,12 +139,12 @@ export const permanentlyDeleteNote = async (id: string) => {
   // If the previous deleteNote sent a DELETE, maybe the note is already gone on server?
   // If deleteNote sent DELETE, and backend did soft delete, then we need another DELETE to hard delete?
   // Or maybe deleteNote should have sent UPDATE isTrashed=true?
-  
+
   // Let's fix deleteNote to be a soft delete (UPDATE) and permanentlyDeleteNote to be hard delete (DELETE).
   await db.syncQueue.add({
-      type: 'DELETE',
-      entity: 'NOTE',
-      entityId: id,
-      createdAt: Date.now()
+    type: 'DELETE',
+    entity: 'NOTE',
+    entityId: id,
+    createdAt: Date.now()
   });
 };

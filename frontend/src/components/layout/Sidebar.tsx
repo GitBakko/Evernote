@@ -1,136 +1,351 @@
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, FileText, Book, Tag, Trash2, Plus, LogOut, Settings, Search } from 'lucide-react';
-import { useAuthStore } from '../../store/authStore';
+import { useState } from 'react';
+import { Plus, Search, Settings, ChevronRight, ChevronDown, Book, Trash2, LogOut, Moon, Sun, Monitor, Star, Lock, Share2, Users, Home, FileText, CheckSquare } from 'lucide-react';
+import { useLocation, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import clsx from 'clsx';
-import { useState, useEffect } from 'react';
-
-import TagList from '../../features/tags/TagList';
-import SearchDialog from '../search/SearchDialog';
-import { createNote } from '../../features/notes/noteService';
 import { useNotebooks } from '../../hooks/useNotebooks';
+import { useTranslation } from 'react-i18next';
+import { useAuthStore } from '../../store/authStore';
+import { useUIStore } from '../../store/uiStore';
+import { InputDialog } from '../ui/InputDialog';
+import { DeleteConfirmationDialog } from '../ui/DeleteConfirmationDialog';
+import { createNotebook, deleteNotebook } from '../../features/notebooks/notebookService';
+import { createNote } from '../../features/notes/noteService';
+import TagList from '../../features/tags/TagList';
+import { usePinnedNotes } from '../../hooks/usePinnedNotes';
+import NotebookSharingModal from '../sharing/NotebookSharingModal';
+import toast from 'react-hot-toast';
 
-export default function Sidebar({ onSelectTag, selectedTagId }: { onSelectTag: (id: string | undefined) => void, selectedTagId?: string }) {
+export default function Sidebar() {
+  const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const selectedTagId = searchParams.get('tagId') || undefined;
+
   const { user, logout } = useAuthStore();
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const { notebooks, createNotebook } = useNotebooks();
+  const { theme, setTheme, openSearch } = useUIStore();
+  const [isNotebooksOpen, setIsNotebooksOpen] = useState(true);
+  const [isNewNotebookOpen, setIsNewNotebookOpen] = useState(false);
+  const [isTagsOpen, setIsTagsOpen] = useState(true);
+  const [isNewTagOpen, setIsNewTagOpen] = useState(false);
+  const [sharingNotebookId, setSharingNotebookId] = useState<string | null>(null);
+
+  const [deleteNotebookId, setDeleteNotebookId] = useState<string | null>(null);
+  const [deleteNotebookName, setDeleteNotebookName] = useState('');
+
+  const { notebooks } = useNotebooks();
+  const pinnedNotes = usePinnedNotes();
 
   const handleCreateNote = async () => {
+    console.log('Sidebar: handleCreateNote called');
     let defaultNotebookId: string;
-    
+
     if (!notebooks || notebooks.length === 0) {
-      const nb = await createNotebook('First Notebook');
-      defaultNotebookId = nb.id;
+      console.log('Sidebar: No notebooks found, creating default...');
+      try {
+        const nb = await createNotebook(t('notebooks.firstNotebook'));
+        defaultNotebookId = nb.id;
+        console.log('Sidebar: Default notebook created', defaultNotebookId);
+      } catch (e) {
+        console.error('Sidebar: Failed to create default notebook', e);
+        return;
+      }
     } else {
       defaultNotebookId = notebooks[0].id;
+      console.log('Sidebar: Using existing notebook', defaultNotebookId);
     }
 
     try {
+      console.log('Sidebar: Creating note...');
       const newNote = await createNote({
         title: '',
         notebookId: defaultNotebookId,
         content: ''
       });
+      console.log('Sidebar: Note created', newNote.id);
       navigate(`/notes?noteId=${newNote.id}`);
+      console.log('Sidebar: Navigated to note');
     } catch (error) {
       console.error('Failed to create note', error);
     }
   };
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
-        setIsSearchOpen(true);
-      }
-      if (e.key === 'Escape') {
-        setIsSearchOpen(false);
-      }
-    };
+  const handleSelectTag = (tagId: string | undefined) => {
+    if (tagId) {
+      navigate(`/notes?tagId=${tagId}`);
+    } else {
+      navigate('/notes');
+    }
+  };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  const toggleTheme = () => {
+    if (theme === 'light') setTheme('dark');
+    else if (theme === 'dark') setTheme('system');
+    else setTheme('light');
+  };
+
+  const getThemeIcon = () => {
+    if (theme === 'light') return <Sun size={16} />;
+    if (theme === 'dark') return <Moon size={16} />;
+    return <Monitor size={16} />;
+  };
+
+  const handleDeleteNotebook = async () => {
+    if (!deleteNotebookId) return;
+    try {
+      await deleteNotebook(deleteNotebookId);
+      toast.success(t('notebooks.deleted'));
+      if (location.search.includes(deleteNotebookId)) {
+        navigate('/notes');
+      }
+    } catch (error) {
+      toast.error(t('notebooks.deleteFailed'));
+    }
+  };
 
   const navItems = [
-    { icon: Home, label: 'Home', path: '/' },
-    { icon: FileText, label: 'Notes', path: '/notes' },
-    { icon: Book, label: 'Notebooks', path: '/notebooks' },
-    { icon: Tag, label: 'Tags', path: '/tags' },
-    { icon: Trash2, label: 'Trash', path: '/trash' },
+    { icon: Home, label: t('sidebar.home'), path: '/' },
+    { icon: FileText, label: t('sidebar.notes'), path: '/notes' },
+    { icon: CheckSquare, label: t('sidebar.tasks'), path: '/tasks' },
+    // Notebooks is handled separately
+    { icon: Users, label: t('sharing.sharedWithMe'), path: '/shared' },
+    { icon: Lock, label: t('vault.title'), path: '/vault' },
+    { icon: Trash2, label: t('sidebar.trash'), path: '/trash' },
   ];
 
   return (
     <>
-      <SearchDialog isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
-      
-      <div className="flex h-screen w-64 flex-col bg-gray-900 text-gray-300">
+      <InputDialog
+        isOpen={isNewNotebookOpen}
+        onClose={() => setIsNewNotebookOpen(false)}
+        onConfirm={async (name) => {
+          if (name) {
+            try {
+              await createNotebook(name);
+              toast.success(t('notebooks.created'));
+            } catch (error: any) {
+              toast.error(error.message || t('notebooks.createFailed'));
+            }
+          }
+        }}
+        title={t('notebooks.create')}
+        placeholder={t('notebooks.namePlaceholder')}
+        confirmText={t('common.create')}
+      />
+
+      <DeleteConfirmationDialog
+        isOpen={!!deleteNotebookId}
+        onClose={() => setDeleteNotebookId(null)}
+        onConfirm={handleDeleteNotebook}
+        itemName={deleteNotebookName}
+        title={t('notebooks.deleteTitle')}
+        description={t('notebooks.deleteDescription')}
+      />
+
+      <NotebookSharingModal
+        isOpen={!!sharingNotebookId}
+        onClose={() => setSharingNotebookId(null)}
+        notebookId={sharingNotebookId || ''}
+        notebookName={notebooks?.find(n => n.id === sharingNotebookId)?.name || ''}
+      />
+
+      <div className="flex h-full w-64 flex-col bg-gray-50 border-r border-gray-200 text-gray-700 dark:bg-gray-900 dark:border-gray-800 dark:text-gray-300">
         {/* User Profile */}
-        <div className="flex items-center gap-3 p-4 border-b border-gray-800">
-          <div className="h-8 w-8 rounded-full bg-emerald-600 flex items-center justify-center text-white font-bold">
-            {user?.name?.[0] || user?.email?.[0] || 'U'}
-          </div>
-          <div className="flex-1 overflow-hidden">
-            <div className="truncate text-sm font-medium text-white">{user?.name || 'User'}</div>
-            <div className="truncate text-xs text-gray-500">{user?.email}</div>
-          </div>
-          <button onClick={logout} className="text-gray-500 hover:text-white" title="Logout">
-            <LogOut size={16} />
-          </button>
+        <div className="p-4 border-b border-gray-200 dark:border-gray-800">
+          <Link to="/profile" className="flex items-center gap-3 hover:bg-gray-100 dark:hover:bg-gray-800 p-2 rounded-lg transition-colors">
+            <div className="h-8 w-8 rounded-full bg-emerald-600 flex items-center justify-center text-white font-bold">
+              {user?.avatarUrl ? (
+                <img src={user.avatarUrl} alt="Profile" className="w-full h-full rounded-full object-cover" />
+              ) : (
+                user?.name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate text-gray-900 dark:text-white">
+                {user?.name || user?.email?.split('@')[0]}
+              </p>
+              <p className="text-xs text-gray-500 truncate dark:text-gray-400">{user?.email}</p>
+            </div>
+            <Settings size={16} className="text-gray-400" />
+          </Link>
         </div>
 
-        {/* Search & New Note */}
-        <div className="p-4 space-y-2">
-          <button 
-            onClick={() => setIsSearchOpen(true)}
-            className="flex w-full items-center gap-2 rounded-md bg-gray-800 px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-700 transition-colors border border-gray-700"
-          >
-            <Search size={16} />
-            <span>Search</span>
-            <span className="ml-auto text-xs text-gray-500 border border-gray-600 rounded px-1">⌘K</span>
-          </button>
-
-          <button 
+        {/* Create Note Button */}
+        <div className="p-4">
+          <button
             onClick={handleCreateNote}
-            className="flex w-full items-center justify-center gap-2 rounded-full bg-emerald-600 py-2 text-sm font-medium text-white hover:bg-emerald-500 transition-colors"
+            className="flex w-full items-center justify-center gap-2 rounded-full bg-emerald-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-all"
           >
             <Plus size={18} />
-            New Note
+            {t('sidebar.newNote')}
           </button>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 space-y-1 px-2 overflow-y-auto">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path));
-            return (
+        <div className="flex-1 overflow-y-auto px-3 py-2 space-y-6">
+          <div className="space-y-1">
+            {navItems.map((item) => (
               <Link
                 key={item.path}
                 to={item.path}
                 className={clsx(
-                  'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
-                  isActive
-                    ? 'bg-gray-800 text-white'
-                    : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                  'flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors',
+                  location.pathname === item.path
+                    ? 'bg-gray-200 text-gray-900 dark:bg-gray-800 dark:text-white'
+                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white'
                 )}
               >
-                <Icon size={18} />
+                <item.icon size={18} />
                 {item.label}
               </Link>
-            );
-          })}
-          
-          <div className="mt-6 px-3">
-              <TagList onSelectTag={onSelectTag} selectedTagId={selectedTagId} />
-          </div>
-        </nav>
+            ))}
 
-        {/* Sync Status / Bottom */}
-        <div className="border-t border-gray-800 p-4 text-xs text-gray-500 flex justify-between items-center">
-          <span>Synced</span>
-          <Settings size={14} className="hover:text-white cursor-pointer" />
+            <button
+              onClick={openSearch}
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white transition-colors"
+            >
+              <Search size={18} />
+              {t('sidebar.search')}
+            </button>
+          </div>
+
+          {/* Pinned Notes */}
+          {pinnedNotes && pinnedNotes.length > 0 && (
+            <div className="space-y-1">
+              <div className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider dark:text-gray-500">
+                {t('sidebar.shortcuts')}
+              </div>
+              {pinnedNotes.map(note => (
+                <Link
+                  key={note.id}
+                  to={`/notes?noteId=${note.id}`}
+                  className="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white truncate"
+                >
+                  <Star size={14} className="flex-shrink-0 text-yellow-500" />
+                  <span className="truncate">{note.title || t('notes.untitled')}</span>
+                </Link>
+              ))}
+            </div>
+          )}
+
+          {/* Notebooks */}
+          <div className="space-y-1">
+            <div className="flex items-center justify-between px-3 group">
+              <button
+                onClick={() => setIsNotebooksOpen(!isNotebooksOpen)}
+                className="flex items-center gap-2 text-xs font-semibold text-gray-500 uppercase tracking-wider hover:text-gray-900 dark:text-gray-500 dark:hover:text-gray-300"
+              >
+                {isNotebooksOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                {t('sidebar.notebooks')}
+              </button>
+              <button
+                onClick={() => setIsNewNotebookOpen(true)}
+                className="opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-200 rounded dark:hover:bg-gray-700 transition-all"
+                title={t('notebooks.create')}
+              >
+                <Plus size={14} />
+              </button>
+            </div>
+
+            {isNotebooksOpen && (
+              <div className="space-y-0.5 mt-1">
+                {notebooks?.map((notebook) => (
+                  <div
+                    key={notebook.id}
+                    className={clsx(
+                      'group flex items-center justify-between px-3 py-2 rounded-md text-sm transition-colors',
+                      searchParams.get('notebookId') === notebook.id
+                        ? 'bg-gray-200 text-gray-900 dark:bg-gray-800 dark:text-white'
+                        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white'
+                    )}
+                  >
+                    <Link
+                      to={`/notes?notebookId=${notebook.id}`}
+                      className="flex items-center gap-3 flex-1 min-w-0"
+                    >
+                      <Book size={16} className="flex-shrink-0" />
+                      <span className="truncate">{notebook.name}</span>
+                      <span className="ml-auto text-xs text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-full">
+                        {(notebook as any).count || 0}
+                      </span>
+                    </Link>
+                    <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setSharingNotebookId(notebook.id);
+                        }}
+                        className="p-1 hover:text-emerald-600 transition-colors"
+                        title={t('sharing.share')}
+                      >
+                        <Share2 size={14} />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setDeleteNotebookId(notebook.id);
+                          setDeleteNotebookName(notebook.name);
+                        }}
+                        className="p-1 hover:text-red-600 transition-colors"
+                        title={t('common.delete')}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Tags */}
+          {/* Tags */}
+          <div className="space-y-1">
+            <div className="flex items-center justify-between px-3 group">
+              <button
+                onClick={() => setIsTagsOpen(!isTagsOpen)}
+                className="flex items-center gap-2 text-xs font-semibold text-gray-500 uppercase tracking-wider hover:text-gray-900 dark:text-gray-500 dark:hover:text-gray-300"
+              >
+                {isTagsOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                {t('sidebar.tags')}
+              </button>
+              <button
+                onClick={() => setIsNewTagOpen(true)}
+                className="opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-200 rounded dark:hover:bg-gray-700 transition-all"
+                title={t('tags.addTag')}
+              >
+                <Plus size={14} />
+              </button>
+            </div>
+
+            {isTagsOpen && (
+              <TagList
+                selectedTagId={selectedTagId}
+                onSelectTag={handleSelectTag}
+                hideHeader={true}
+                isCreatingExternal={isNewTagOpen}
+                onCancelCreate={() => setIsNewTagOpen(false)}
+              />
+            )}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="p-4 border-t border-gray-200 dark:border-gray-800 flex items-center justify-between">
+          <button
+            onClick={toggleTheme}
+            className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg dark:text-gray-400 dark:hover:bg-gray-800 transition-colors"
+            title={t('common.theme')}
+          >
+            {getThemeIcon()}
+          </button>
+          <button
+            onClick={logout}
+            className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg dark:text-gray-400 dark:hover:bg-gray-800 transition-colors"
+            title={t('auth.logout')}
+          >
+            <LogOut size={18} />
+          </button>
         </div>
       </div>
     </>

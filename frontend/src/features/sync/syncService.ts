@@ -91,7 +91,8 @@ export const syncPush = async () => {
     try {
       if (item.entity === 'NOTE') {
         if (item.type === 'CREATE') {
-           const { id, ...data } = item.data;
+           // eslint-disable-next-line @typescript-eslint/no-explicit-any
+           const { id, ...data } = item.data as any;
            await api.post('/notes', { ...data, id }); 
         } else if (item.type === 'UPDATE') {
            await api.put(`/notes/${item.entityId}`, item.data);
@@ -100,7 +101,8 @@ export const syncPush = async () => {
         }
       } else if (item.entity === 'NOTEBOOK') {
         if (item.type === 'CREATE') {
-          const { id, ...data } = item.data;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { id, ...data } = item.data as any;
           await api.post('/notebooks', { ...data, id });
         } else if (item.type === 'UPDATE') {
           await api.put(`/notebooks/${item.entityId}`, item.data);
@@ -109,7 +111,8 @@ export const syncPush = async () => {
         }
       } else if (item.entity === 'TAG') {
         if (item.type === 'CREATE') {
-          const { id, ...data } = item.data;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { id, ...data } = item.data as any;
           await api.post('/tags', { ...data, id });
         } else if (item.type === 'DELETE') {
           await api.delete(`/tags/${item.entityId}`);

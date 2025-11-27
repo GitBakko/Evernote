@@ -6,7 +6,7 @@ services:
     environment:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
-      POSTGRES_DB: evernote_clone
+      POSTGRES_DB: notiq
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
@@ -15,7 +15,7 @@ services:
   backend:
     build: ./backend
     environment:
-      DATABASE_URL: postgresql://user:password@postgres:5432/evernote_clone?schema=public
+      DATABASE_URL: postgresql://user:password@postgres:5432/notiq?schema=public
       JWT_SECRET: supersecretkey
     volumes:
       - uploads_data:/app/uploads

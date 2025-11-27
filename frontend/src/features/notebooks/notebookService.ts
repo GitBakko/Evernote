@@ -9,6 +9,12 @@ export const getNotebooks = async () => {
 };
 
 export const createNotebook = async (name: string) => {
+  // Check for duplicate name
+  const existing = await db.notebooks.where('name').equals(name).first();
+  if (existing) {
+    return existing;
+  }
+
   const id = uuidv4();
   const newNotebook: LocalNotebook = {
     id,
@@ -32,6 +38,12 @@ export const createNotebook = async (name: string) => {
 };
 
 export const updateNotebook = async (id: string, name: string) => {
+  // Check for duplicate name (excluding current notebook)
+  const existing = await db.notebooks.where('name').equals(name).first();
+  if (existing && existing.id !== id) {
+    throw new Error('A notebook with this name already exists.');
+  }
+
   await db.notebooks.update(id, { name, updatedAt: new Date().toISOString(), syncStatus: 'updated' });
   await db.syncQueue.add({
     type: 'UPDATE',
@@ -43,6 +55,12 @@ export const updateNotebook = async (id: string, name: string) => {
 };
 
 export const deleteNotebook = async (id: string) => {
+  // Check if notebook is empty
+  const notesCount = await db.notes.where('notebookId').equals(id).filter(n => !n.isTrashed).count();
+  if (notesCount > 0) {
+    throw new Error('Cannot delete a non-empty notebook. Please move or delete notes first.');
+  }
+
   await db.notebooks.delete(id);
   await db.syncQueue.add({
     type: 'DELETE',
@@ -50,4 +68,20 @@ export const deleteNotebook = async (id: string) => {
     entityId: id,
     createdAt: Date.now()
   });
+};
+
+import api from '../../lib/api';
+
+export const shareNotebook = async (id: string, email: string, permission: 'READ' | 'WRITE' = 'READ') => {
+  const res = await api.post(`/share/notebooks/${id}`, { email, permission });
+  return res.data;
+};
+
+export const revokeNotebookShare = async (id: string, userId: string) => {
+  await api.delete(`/share/notebooks/${id}/${userId}`);
+};
+
+export const getSharedNotebooks = async () => {
+  const res = await api.get<any[]>('/share/notebooks');
+  return res.data;
 };

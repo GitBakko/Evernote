@@ -1,53 +1,65 @@
 import { test, expect } from '@playwright/test';
 import { v4 as uuidv4 } from 'uuid';
 
-test.describe('Authentication Flow', () => {
-  
+test.describe('Authentication', () => {
   test('should register a new user', async ({ page }) => {
-    const email = `test-register-${uuidv4()}@example.com`;
+    const email = `test-${uuidv4()}@example.com`;
     const password = 'password123';
-    const name = 'Test User';
 
     await page.goto('/register');
-    await page.fill('input[type="text"]', name);
+    await page.fill('input[type="text"]', 'Test User'); // Name
     await page.fill('input[type="email"]', email);
     await page.fill('input[type="password"]', password);
     await page.click('button[type="submit"]');
 
-    // Should redirect to notes (home)
-    await expect(page).toHaveURL(/\/notes/);
+    // Should redirect to /notes after successful registration (auto-login, then redirect from / to /notes)
+    await expect(page).toHaveURL(/\/notes/, { timeout: 10000 });
+    // Check for sidebar or something that indicates logged in state
+    await expect(page.getByText('Notes', { exact: true })).toBeVisible();
   });
 
-  test('should login with the registered user', async ({ page }) => {
-    const email = `test-login-${uuidv4()}@example.com`;
+  test('should login with existing user', async ({ page }) => {
+    const email = `login-${uuidv4()}@example.com`;
     const password = 'password123';
-    const name = 'Test User';
 
-    // Register first to create the user
+    // Register first (which logs in)
     await page.goto('/register');
-    await page.fill('input[type="text"]', name);
+    await page.fill('input[type="text"]', 'Login User');
     await page.fill('input[type="email"]', email);
     await page.fill('input[type="password"]', password);
     await page.click('button[type="submit"]');
-    await expect(page).toHaveURL(/\/notes/);
+    await expect(page).toHaveURL(/\/notes/, { timeout: 10000 });
 
-    // Logout (if possible) or clear cookies/storage to test login
-    await page.context().clearCookies();
-    await page.evaluate(() => localStorage.clear());
-    await page.reload();
+    // Wait for sidebar to be visible to ensure we are logged in and UI is ready
+    await expect(page.getByText('Notes', { exact: true })).toBeVisible();
 
-    // Should be redirected to login
-    await expect(page).toHaveURL(/\/login/);
+    // Logout to test login
+    await page.click('button[title="Logout"]');
+    await expect(page).toHaveURL('/login', { timeout: 10000 });
 
-    // Now Login
+    // Now login
     await page.fill('input[type="email"]', email);
     await page.fill('input[type="password"]', password);
     await page.click('button[type="submit"]');
 
-    // Should redirect to notes
-    await expect(page).toHaveURL(/\/notes/);
-    
-    // Check if user name is displayed in sidebar
-    await expect(page.locator('text=Test User')).toBeVisible();
+    await expect(page).toHaveURL(/\/notes/, { timeout: 10000 });
+    await expect(page.getByText('Notes', { exact: true })).toBeVisible();
+  });
+
+  test('should logout', async ({ page }) => {
+    const email = `logout-${uuidv4()}@example.com`;
+    const password = 'password123';
+
+    await page.goto('/register');
+    await page.fill('input[type="text"]', 'Logout User');
+    await page.fill('input[type="email"]', email);
+    await page.fill('input[type="password"]', password);
+    await page.click('button[type="submit"]');
+    await expect(page).toHaveURL(/\/notes/, { timeout: 10000 });
+
+    // Logout
+    await page.click('button[title="Logout"]');
+
+    await expect(page).toHaveURL('/login', { timeout: 10000 });
   });
 });

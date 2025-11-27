@@ -10,16 +10,23 @@ export interface LocalNote {
   createdAt: string;
   updatedAt: string;
   tags: { tag: { id: string; name: string } }[];
-  attachments: { 
-    id: string; 
-    url: string; 
-    filename: string; 
-    mimeType: string; 
+  attachments: {
+    id: string;
+    url: string;
+    filename: string;
+    mimeType: string;
     size: number;
     version?: number;
     hash?: string;
     isLatest?: boolean;
   }[];
+  reminderDate?: string | null;
+  isReminderDone?: boolean;
+  isPublic?: boolean;
+  shareId?: string | null;
+  isPinned?: boolean;
+  isVault?: boolean;
+  isEncrypted?: boolean;
   syncStatus: 'synced' | 'created' | 'updated';
 }
 
@@ -37,6 +44,9 @@ export interface LocalTag {
   name: string;
   userId: string;
   syncStatus: 'synced' | 'created' | 'updated';
+  _count?: {
+    notes: number;
+  };
 }
 
 export interface SyncQueueItem {
@@ -44,7 +54,7 @@ export interface SyncQueueItem {
   type: 'CREATE' | 'UPDATE' | 'DELETE';
   entity: 'NOTE' | 'NOTEBOOK' | 'TAG';
   entityId: string;
-  data?: any;
+  data?: Record<string, unknown>;
   createdAt: number;
 }
 
@@ -55,12 +65,28 @@ class AppDatabase extends Dexie {
   syncQueue!: Table<SyncQueueItem>;
 
   constructor() {
-    super('EvernoteCloneDB');
+    super('NotiqDB');
     this.version(1).stores({
       notes: 'id, notebookId, updatedAt, syncStatus, isTrashed',
       notebooks: 'id, name, updatedAt, syncStatus',
       tags: 'id, name, syncStatus',
       syncQueue: '++id, type, entity, createdAt'
+    });
+
+    this.version(2).stores({
+      notes: 'id, notebookId, updatedAt, syncStatus, isTrashed, reminderDate, isReminderDone',
+    });
+
+    this.version(3).stores({
+      notes: 'id, notebookId, updatedAt, syncStatus, isTrashed, reminderDate, isReminderDone, isPublic, shareId',
+    });
+
+    this.version(4).stores({
+      notes: 'id, notebookId, updatedAt, syncStatus, isTrashed, reminderDate, isReminderDone, isPublic, shareId, isPinned',
+    });
+
+    this.version(5).stores({
+      notes: 'id, notebookId, updatedAt, syncStatus, isTrashed, reminderDate, isReminderDone, isPublic, shareId, isPinned, isVault, isEncrypted',
     });
   }
 }

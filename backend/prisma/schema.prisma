@@ -15,11 +15,21 @@ model User {
   email     String   @unique
   password  String
   name      String?
+  surname   String?
+  gender    String?
+  dateOfBirth DateTime?
+  placeOfBirth String?
+  mobile    String?
+  avatarUrl String?
+  resetToken String?
+  resetTokenExpiry DateTime?
   createdAt DateTime @default(now())
   
   notebooks Notebook[]
   notes     Note[]
   tags      Tag[]
+  sharedNotes     SharedNote[]
+  sharedNotebooks SharedNotebook[]
 }
 
 model Notebook {
@@ -28,6 +38,7 @@ model Notebook {
   userId    String
   user      User     @relation(fields: [userId], references: [id])
   notes     Note[]
+  sharedWith SharedNotebook[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -43,7 +54,13 @@ model Note {
   user        User     @relation(fields: [userId], references: [id])
   tags        TagsOnNotes[]
   attachments Attachment[]
+  sharedWith  SharedNote[]
   isTrashed   Boolean  @default(false)
+  reminderDate DateTime?
+  isReminderDone Boolean @default(false)
+  isPublic    Boolean  @default(false)
+  shareId     String?  @unique
+  isPinned    Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -80,4 +97,33 @@ model Attachment {
   version   Int      @default(1)
   hash      String?
   isLatest  Boolean  @default(true)
+}
+
+enum Permission {
+  READ
+  WRITE
+}
+
+model SharedNote {
+  id         String     @id @default(uuid())
+  noteId     String
+  note       Note       @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permission Permission @default(READ)
+  createdAt  DateTime   @default(now())
+
+  @@unique([noteId, userId])
+}
+
+model SharedNotebook {
+  id         String     @id @default(uuid())
+  notebookId String
+  notebook   Notebook   @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permission Permission @default(READ)
+  createdAt  DateTime   @default(now())
+
+  @@unique([notebookId, userId])
 }

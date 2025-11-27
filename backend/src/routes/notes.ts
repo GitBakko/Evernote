@@ -3,7 +3,8 @@ import { z } from 'zod';
 import * as noteService from '../services/note.service';
 
 const createNoteSchema = z.object({
-  title: z.string().min(1),
+  id: z.string().uuid().optional(),
+  title: z.string().default(''),
   notebookId: z.string().uuid(),
   content: z.string().optional(),
 });
@@ -13,20 +14,28 @@ const updateNoteSchema = z.object({
   content: z.string().optional(),
   notebookId: z.string().uuid().optional(),
   isTrashed: z.boolean().optional(),
+  reminderDate: z.string().nullable().optional(),
+  isReminderDone: z.boolean().optional(),
+  isPinned: z.boolean().optional(),
 });
 
 export default async function noteRoutes(fastify: FastifyInstance) {
   fastify.addHook('onRequest', fastify.authenticate);
 
   fastify.post('/', async (request, reply) => {
-    const { title, notebookId, content } = createNoteSchema.parse(request.body);
-    const note = await noteService.createNote(request.user.id, notebookId, title, content);
+    const { id, title, notebookId, content } = createNoteSchema.parse(request.body);
+    const note = await noteService.createNote(request.user.id, notebookId, title, content, id);
     return note;
   });
 
   fastify.get('/', async (request, reply) => {
-    const { notebookId, search, tagId } = request.query as { notebookId?: string; search?: string; tagId?: string };
-    const notes = await noteService.getNotes(request.user.id, notebookId, search, tagId);
+    const { notebookId, search, tagId, reminderFilter } = request.query as {
+      notebookId?: string;
+      search?: string;
+      tagId?: string;
+      reminderFilter?: 'all' | 'pending' | 'done';
+    };
+    const notes = await noteService.getNotes(request.user.id, notebookId, search, tagId, reminderFilter);
     return notes;
   });
 
@@ -48,5 +57,12 @@ export default async function noteRoutes(fastify: FastifyInstance) {
     const { id } = request.params as { id: string };
     await noteService.deleteNote(request.user.id, id);
     return { message: 'Note deleted' };
+  });
+
+  fastify.post('/:id/share', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const { email, permission } = request.body as { email: string, permission: 'READ' | 'WRITE' };
+    const note = await noteService.shareNote(request.user.id, id, email, permission);
+    return note;
   });
 }

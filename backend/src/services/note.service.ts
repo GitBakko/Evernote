@@ -1,8 +1,9 @@
 import prisma from '../plugins/prisma';
 
-export const createNote = async (userId: string, notebookId: string, title: string, content: string = '') => {
+export const createNote = async (userId: string, notebookId: string, title: string, content: string = '', id?: string) => {
   return prisma.note.create({
     data: {
+      ...(id ? { id } : {}),
       title,
       content,
       userId,
@@ -11,7 +12,7 @@ export const createNote = async (userId: string, notebookId: string, title: stri
   });
 };
 
-export const getNotes = async (userId: string, notebookId?: string, search?: string, tagId?: string) => {
+export const getNotes = async (userId: string, notebookId?: string, search?: string, tagId?: string, reminderFilter?: 'all' | 'pending' | 'done') => {
   return prisma.note.findMany({
     where: {
       userId,
@@ -23,10 +24,15 @@ export const getNotes = async (userId: string, notebookId?: string, search?: str
           { content: { contains: search } },
         ]
       } : {}),
+      ...(reminderFilter ? {
+        reminderDate: { not: null },
+        ...(reminderFilter === 'pending' ? { isReminderDone: false } : {}),
+        ...(reminderFilter === 'done' ? { isReminderDone: true } : {}),
+      } : {}),
       isTrashed: false,
     },
     orderBy: { updatedAt: 'desc' },
-    include: { 
+    include: {
       tags: { include: { tag: true } },
       attachments: {
         where: { isLatest: true }
@@ -38,7 +44,7 @@ export const getNotes = async (userId: string, notebookId?: string, search?: str
 export const getNote = async (userId: string, id: string) => {
   return prisma.note.findFirst({
     where: { id, userId },
-    include: { 
+    include: {
       tags: { include: { tag: true } },
       attachments: {
         where: { isLatest: true }
@@ -47,13 +53,46 @@ export const getNote = async (userId: string, id: string) => {
   });
 };
 
-export const updateNote = async (userId: string, id: string, data: { title?: string; content?: string; notebookId?: string; isTrashed?: boolean }) => {
+export const updateNote = async (userId: string, id: string, data: {
+  title?: string;
+  content?: string;
+  notebookId?: string;
+  isTrashed?: boolean;
+  reminderDate?: string | null;
+  isReminderDone?: boolean;
+  isPinned?: boolean;
+}) => {
   return prisma.note.updateMany({
     where: { id, userId },
     data: {
       ...data,
       updatedAt: new Date(),
     },
+  });
+};
+
+import { v4 as uuidv4 } from 'uuid';
+
+export const toggleShare = async (userId: string, id: string) => {
+  const note = await prisma.note.findFirst({ where: { id, userId } });
+  if (!note) throw new Error('Note not found');
+
+  const isPublic = !note.isPublic;
+  const shareId = isPublic ? uuidv4() : null;
+
+  return prisma.note.update({
+    where: { id },
+    data: { isPublic, shareId, updatedAt: new Date() }
+  });
+};
+
+export const getPublicNote = async (shareId: string) => {
+  return prisma.note.findUnique({
+    where: { shareId },
+    include: {
+      tags: { include: { tag: true } },
+      attachments: { where: { isLatest: true } }
+    }
   });
 };
 

@@ -1,4 +1,4 @@
-# Roadmap Pubblicazione App Evernote Clone (v1.0)
+# Roadmap Pubblicazione App Notiq (v1.0)
 
 Questo piano dettagliato guida l'implementazione completa, partendo dalla correzione dell'architettura offline-first per i Notebooks fino al deploy finale.
 

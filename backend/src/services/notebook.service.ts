@@ -1,9 +1,17 @@
 import prisma from '../plugins/prisma';
 
 export const createNotebook = async (userId: string, name: string, id?: string) => {
+  const existing = await prisma.notebook.findFirst({
+    where: { userId, name },
+  });
+
+  if (existing) {
+    throw new Error('Notebook with this name already exists');
+  }
+
   return prisma.notebook.create({
     data: {
-      id,
+      ...(id ? { id } : {}),
       name,
       userId,
     },
@@ -32,11 +40,6 @@ export const updateNotebook = async (userId: string, id: string, name: string) =
 };
 
 export const deleteNotebook = async (userId: string, id: string) => {
-  // Optional: Check if empty or cascade delete. Prisma schema handles cascade if configured, 
-  // but here we might want to prevent deleting non-empty notebooks or move notes to trash.
-  // For MVP, we'll allow deletion which cascades via Prisma relation if set, or we rely on DB constraint.
-  // Default Prisma relation is restrictive unless specified. Let's assume we want to delete notes too or handle it.
-  // For now, simple delete.
   return prisma.notebook.deleteMany({
     where: { id, userId },
   });
